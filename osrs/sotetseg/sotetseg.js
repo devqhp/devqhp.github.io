@@ -37,11 +37,11 @@ var tile_size      = 40;
 
 if (view_ratio < 0.77) {
 	if (viewport_width < 620) {
-		tile_size = (viewport_width - 30)/15;
+		tile_size = (viewport_width - 30)/maze_width; // 30 is just buffer space
 	}
 } else {
 	if (viewport_height < 800) {
-		tile_size = (viewport_height - 200)/15;
+		tile_size = (viewport_height - 200)/maze_height; // 200 is buffer space for the buttons/text above/below the maze
 	}
 }
 
