@@ -89,11 +89,11 @@ function resize() {
 }
 
 function getTileClicked(event) {
-	var rect = canvas.getBoundingClientRect();
-	var pixel_x = event.clientX - rect.left;
-	var pixel_y = event.clientY - rect.top;
-	var tile_x = Math.floor(pixel_x / tile_size);
-	var tile_y = Math.floor(pixel_y / tile_size);
+	let rect = canvas.getBoundingClientRect();
+	let pixel_x = event.clientX - rect.left;
+	let pixel_y = event.clientY - rect.top;
+	let tile_x = Math.floor(pixel_x / tile_size);
+	let tile_y = Math.floor(pixel_y / tile_size);
 	return { x: tile_x, y: tile_y };
 }
 
@@ -159,8 +159,8 @@ function drawMazeTile(x, y, color_tile) {
 }
 
 function drawMaze() {
-	for (var x = 0; x < maze.length; x++) {
-		for (var y = 0; y < maze[x].length; y++) {
+	for (let x = 0; x < maze.length; x++) {
+		for (let y = 0; y < maze[x].length; y++) {
 			drawMazeTile(x, y, maze[x][y] ? color_tilepath : color_tilenogo);
 		}
 	}
@@ -191,22 +191,22 @@ function pathWeighting() {
 
 function makeSeededMaze(seed) {
 	let maze = new Array(maze_width);
-	for (var x = 0; x < maze.length; x++) {
+	for (let x = 0; x < maze.length; x++) {
 		maze[x] = new Array(maze_height);
 	}
-	for (var x = 0; x < maze.length; x++) {
-		for (var y = 0; y < maze[x].length; y++) {
+	for (let x = 0; x < maze.length; x++) {
+		for (let y = 0; y < maze[x].length; y++) {
 			maze[x][y] = false;
 		}
 	}
-	var next_x = -1;
-	var s = 0;
-	var x = seed[s];
-	var y = maze[0].length - 1;
+	let next_x = -1;
+	let s = 0;
+	let x = seed[s];
+	let y = maze[0].length - 1;
 	while (y >= 0) {
 		if (y % 2) {
 			next_x = seed[++s];
-			for (var i = Math.min(x, next_x); i <= Math.max(x, next_x); i++) {
+			for (let i = Math.min(x, next_x); i <= Math.max(x, next_x); i++) {
 				maze[i][y] = true;
 			}
 			x = next_x;
@@ -223,7 +223,7 @@ function makeSeededMaze(seed) {
 function makeSeed() {
 	seed = new Array(path_turns);
 	seed[0] = randRange(0, maze_width - 1);
-	for (var i = 1; i < seed.length; i++) {
+	for (let i = 1; i < seed.length; i++) {
 		seed[i] = randRange(Math.max(seed[i-1] - max_x_change, 0), Math.min(seed[i-1] + max_x_change, maze_width - 1));
 	}
 }
@@ -235,7 +235,7 @@ function makeMaze() {
 
 function connectPoints(points, color) {
 	ctx.beginPath();
-	for (var i = 0; i < points.length - 1; i++) {
+	for (let i = 0; i < points.length - 1; i++) {
 		ctx.moveTo(points[i].x * tile_size + tile_size / 2, points[i].y * tile_size + tile_size / 2);
 		ctx.lineTo(points[i + 1].x * tile_size + tile_size / 2, points[i + 1].y * tile_size + tile_size / 2);
 	}
@@ -245,13 +245,13 @@ function connectPoints(points, color) {
 }
 
 function drawstalledTiles() {
-	for (var i = 0; i < stalled_tiles.length; i++) {
+	for (let i = 0; i < stalled_tiles.length; i++) {
 		drawMazeTile(stalled_tiles[i].x, stalled_tiles[i].y, color_linesolv);
 	}
 }
 
 function drawPassedTiles() {
-	for (var i = 0; i < path_taken.length; i++) {
+	for (let i = 0; i < path_taken.length; i++) {
 		drawPathTile(path_taken[i].x, path_taken[i].y);
 	}
 }
@@ -322,7 +322,7 @@ function solveMaze() {
 		];
 		for (let i = 0; i < possible_moves.length; i++) {
 			if (!isValidMove(c, possible_moves[i])) {
-				possible_moves.splice(i, 1);
+				possible_moves.splice(i, 1); // remove invalid moves from array
 				i--;
 			}
 		}
@@ -377,7 +377,7 @@ function getNextPathTile(c_pos, o_pos) {
 }
 
 function editSeed() {
-	var savestate = prompt("Enter a seed", seed.join(" "));
+	let savestate = prompt("Enter a seed", seed.join(" "));
 	savestate = savestate.split(' ').map(Number);
 	if (savestate.length != path_turns || Math.max(savestate) >= maze_width || Math.min(savestate) < 0) {
 		alert("Bad seed");
@@ -417,7 +417,7 @@ canvas.addEventListener('mousedown', function (event) {
 });
 
 function drawMoves() {
-	for (var i = 0; i < moves.length; i++) {
+	for (let i = 0; i < moves.length; i++) {
 		drawMoveTile(moves[i].x, moves[i].y);
 	}
 }
