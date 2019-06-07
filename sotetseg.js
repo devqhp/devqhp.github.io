@@ -3,7 +3,7 @@
 function showAbout() {
 	alert("Feel free to message suggestions to me on discord at qhp#5615.\n" +
 		"- Special thanks to Ardames, De0, and Hato for advice on the game's mechanics.\n" +
-		"- Additional thanks to Deflne_Alive, LucidDream, SNIPERBDS, xZact, and the WeDoRaids discord for sharing mazes from which I could establish rules for maze generation.");
+		"- Additional thanks to Define_Alive, LucidDream, SNIPERBDS, xZact, and the WeDoRaids discord for sharing mazes from which I could establish rules for maze generation.");
 }
 
 function showRules() {
@@ -358,7 +358,6 @@ canvas.addEventListener('mousedown', function (event) {
 	if (moves.length == 0 && !session_active) {
 		session_active = true;
 		player_position = new Point(start_pos.x, start_pos.y + 1); // start off-screen, 1 tile below first maze tile
-		path_taken.push(targeted_tile);
 		timerTick = setInterval(gameTick, tick_length);
 	}
 });
