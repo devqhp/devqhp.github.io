@@ -1,7 +1,7 @@
 /* This code is pretty sloppy right now. Sorry for the mess. */
 
 function showAbout() {
-	alert("Feel free to message suggestions to me on discord at qhp#5615.\n" +
+	alert("Feel free to message suggestions to me on discord at qhp#5615.\n\n" +
 		"- Special thanks to Ardames, De0, and Hato for advice on the game's mechanics.\n" +
 		"- Additional thanks to Deflne_Alive, LucidDream, SNIPERBDS, xZact, and the WeDoRaids discord for sharing mazes from which I could establish rules for maze generation.");
 }
@@ -9,7 +9,8 @@ function showAbout() {
 function showRules() {
 	alert("1. You must start on the first tile (your character waits 1 tile south).\n" +
 		  "2. You must finish on the last tile.\n" +
-		  "3. You must not damage any of your teammates (mistakes marked red).\n\n" +
+		  "3. You must not damage any of your teammates (mistakes marked red).\n" +
+		  "4. If you don't move for a tick, the tile you stall on is colored yellow.\n\n" +
 		  "Movement mechanics work just as they do in OSRS and are processed every tick (600ms).");
 }
 
@@ -32,6 +33,7 @@ const color_tileplay = "#77DD77";
 const color_tilenext = "#C8C8C8";
 const color_tilesolv = "#6495ED";
 const color_linesolv = "#FFFF00";
+const color_circmove = "#FFFF00";
 const color_circpass = "#008000";
 const color_circfail = "#DC143C";
 const solv_font      = "Arial";
@@ -70,6 +72,16 @@ function drawPathTile(x, y) {
 	ctx.arc(pos_x+tile_size/2, pos_y+tile_size/2, tile_size/3.4, 0, 2*Math.PI);
 	ctx.fill();
 }
+
+function drawMoveTile(x, y) {
+	let pos_x = tile_size * x;
+	let pos_y = tile_size * y;
+	ctx.strokeStyle = color_circmove;
+	ctx.beginPath(pos_x, pos_y, pos_x+tile_size, pos_y+tile_size);
+	ctx.arc(pos_x+tile_size/2, pos_y+tile_size/2, tile_size/3.4, 0, 2*Math.PI);
+	ctx.stroke();
+}
+
 
 function drawTargetTile(x, y) {
 	let pos_x = tile_size * x;
@@ -362,10 +374,17 @@ canvas.addEventListener('mousedown', function (event) {
 	}
 });
 
+function drawMoves() {
+	for (var i = 0; i < moves.length; i++) {
+		drawMoveTile(moves[i].x, moves[i].y);
+	}
+}
+
 function drawState() {
 	drawMaze();
 	drawstalledTiles();
 	drawPassedTiles();
+	drawMoves();
 	if (!(player_position.x == targeted_tile.x && player_position.y == targeted_tile.y)) {
 		drawTargetTile(targeted_tile.x, targeted_tile.y);
 	}
@@ -389,12 +408,15 @@ function gameTick() {
 	for (let i = 0; i < new_tiles.length; i++) {
 		path_taken.push(new_tiles[i]);
 	}
+	moves.push(new_tiles[new_tiles.length - 1]);
 	player_position = new Point(path_taken[path_taken.length - 1].x, path_taken[path_taken.length - 1].y);
+	drawState();
 	if (player_position.y == 0) {
 		session_active = false;
 		clearInterval(timerTick);
+		drawSolution();
 	}
-	drawState();
+	
 	writeTime();
 }
 
