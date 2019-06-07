@@ -33,7 +33,7 @@ const color_tileplay = "#77DD77";
 const color_tilenext = "#C8C8C8";
 const color_tilesolv = "#6495ED";
 const color_linesolv = "#FFFF00";
-const color_circmove = "#B200FF";
+const color_circmove = "#FFFFFF";
 const color_circpass = "#008000";
 const color_circfail = "#DC143C";
 const solv_font      = "Arial";
@@ -83,9 +83,9 @@ function drawMoveTile(x, y) {
 }
 
 
-function drawTargetTile(x, y) {
-	let pos_x = tile_size * x;
-	let pos_y = tile_size * y;
+function drawTargetTile() {
+	let pos_x = tile_size * targeted_tile.x;
+	let pos_y = tile_size * targeted_tile.y;
 	ctx.fillStyle = color_tilesolv;
 	ctx.fillRect(pos_x, pos_y, tile_size, tile_size);
 	ctx.fillStyle = color_mazeback;
@@ -386,7 +386,7 @@ function drawState() {
 	drawPassedTiles();
 	drawMoves();
 	if (!(player_position.x == targeted_tile.x && player_position.y == targeted_tile.y)) {
-		drawTargetTile(targeted_tile.x, targeted_tile.y);
+		drawTargetTile();
 	}
 }
 
@@ -408,7 +408,9 @@ function gameTick() {
 	for (let i = 0; i < new_tiles.length; i++) {
 		path_taken.push(new_tiles[i]);
 	}
-	moves.push(new_tiles[new_tiles.length - 1]);
+	if (new_tiles.length > 0) {
+		moves.push(new_tiles[new_tiles.length - 1]);
+	}
 	player_position = new Point(path_taken[path_taken.length - 1].x, path_taken[path_taken.length - 1].y);
 	drawState();
 	if (player_position.y == 0) {
