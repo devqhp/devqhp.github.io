@@ -7,14 +7,21 @@ function showAbout() {
 }
 
 function showInstructions() {
-	alert("1. You must start on the first tile (your character waits 1 tile south).\n" +
-		  "2. You must finish on the last tile.\n" +
-		  "3. You must not damage any of your teammates (mistakes marked red).\n" +
-		  "4. If you don't move for a tick, the tile you stall on is colored yellow.\n\n" +
-		  "Movement mechanics work just as they do in OSRS and are processed every tick (600ms).\n" +
-		  "White circles show where your character existed each tick while traversing the maze.\n" +
-		  "The numbers show the computed optimal path. You may have a different path but as long as you make par, you're doing great :)");
+	alert(
+		"1. You must start on the first tile (your character waits 1 tile south).\n" +
+		"2. You must finish on the last tile.\n" +
+		"3. You must not damage any of your teammates (mistakes marked red).\n" +
+		"4. If you don't move for a tick, the tile you stall on is colored yellow.\n\n" +
+		"Movement mechanics work just as they do in OSRS and are processed every tick (600ms).\n" +
+		"White circles show where your character existed each tick while traversing the maze.\n" +
+		"The numbers show the computed optimal path. You may have a different path but as long as you make par, you're doing great :)"
+	);
 }
+
+
+var viewport_height = window.innerHeight;
+var viewport_width = window.innerWidth;
+var view_ratio = viewport_width / viewport_height;
 
 const FPS = 50;
 const delta_time   = 1000 / FPS;
@@ -26,8 +33,22 @@ const maze_height  = 15;
 const max_x_change = 5;
 const path_turns   = 8;
 
-const tile_size    = 40;
+var tile_size      = 40;
+
+if (view_ratio < 0.77) {
+	if (viewport_width < 620) {
+		tile_size = (viewport_width - 30)/15;
+	}
+} else {
+	if (viewport_height < 800) {
+		tile_size = (viewport_height - 200)/15;
+	}
+}
+
 const tile_stroke  = tile_size/25;
+
+const solv_fontsize  = 15*(tile_size/40);
+
 const color_mazeback = "#323232";
 const color_tilepath = "#961919";
 const color_tilenogo = "#C8C8C8";
@@ -39,7 +60,7 @@ const color_circmove = "#FFFFFF";
 const color_circpass = "#008000";
 const color_circfail = "#DC143C";
 const solv_font      = "Arial";
-const solv_fontsize  = 15;
+
 
 var canvas = document.getElementById("sotetseg-maze");
 var ctx = canvas.getContext("2d");
@@ -304,12 +325,17 @@ function solveMaze() {
 }
 
 function drawSolution() {
-	ctx.textAlign = "center";
-	ctx.fillStyle = "#FFFFFF";
-	ctx.font = `${solv_fontsize}px ${solv_font}`;
-	for (let i = 0; i < optimal_moves.length; i++) {
-		ctx.fillText(`${i+1}`, optimal_moves[i].x*tile_size + tile_size*0.5, optimal_moves[i].y*tile_size + tile_size*0.5 + solv_fontsize*0.3);
+	if (!solution_drawn) {
+		ctx.textAlign = "center";
+		ctx.fillStyle = "#FFFFFF";
+		ctx.font = `${solv_fontsize}px ${solv_font}`;
+		for (let i = 0; i < optimal_moves.length; i++) {
+			ctx.fillText(`${i+1}`, optimal_moves[i].x*tile_size + tile_size*0.5, optimal_moves[i].y*tile_size + tile_size*0.5 + solv_fontsize*0.3);
+		}
+		solution_drawn = true;
 	}
+	
+	
 }
 
 function getNextPathTile(c_pos, o_pos) {
@@ -432,6 +458,7 @@ function gameFrame() {
 }
 
 function resetvars() {
+	solution_drawn = false;
 	ticks = 0;
 	ticks_stalled = 0;
 	stalled_tiles = new Array();
@@ -464,6 +491,7 @@ function reset() {
 	writeTime();
 }
 
+var solution_drawn;
 var start_pos;
 var end_pos;
 var ticks;
