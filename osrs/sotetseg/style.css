@@ -7,7 +7,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 100%;
+  width: 99%; // temporary fix to remove horiz scrollbar... will have to fix properly eventually
 }
 
 .canvas-wrapper-parent {

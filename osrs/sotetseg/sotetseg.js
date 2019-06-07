@@ -19,9 +19,7 @@ function showInstructions() {
 }
 
 
-var viewport_height = window.innerHeight;
-var viewport_width = window.innerWidth;
-var view_ratio = viewport_width / viewport_height;
+
 
 const FPS = 50;
 const delta_time   = 1000 / FPS;
@@ -33,21 +31,14 @@ const maze_height  = 15;
 const max_x_change = 5;
 const path_turns   = 8;
 
+var viewport_height = window.innerHeight;
+var viewport_width = window.innerWidth;
+var view_ratio = viewport_width / viewport_height;
+
 var tile_size      = 40;
+var tile_stroke  = tile_size/25;
+var solv_fontsize  = 15*(tile_size/40);
 
-if (view_ratio < 0.77) {
-	if (viewport_width < 620) {
-		tile_size = (viewport_width - 30)/maze_width; // 30 is just buffer space
-	}
-} else {
-	if (viewport_height < 800) {
-		tile_size = (viewport_height - 200)/maze_height; // 200 is buffer space for the buttons/text above/below the maze
-	}
-}
-
-const tile_stroke  = tile_size/25;
-
-const solv_fontsize  = 15*(tile_size/40);
 
 const color_mazeback = "#323232";
 const color_tilepath = "#961919";
@@ -72,6 +63,29 @@ class Point {
 		this.x = x;
 		this.y = y;
 	}
+}
+
+function resize() {
+	let viewport_height = window.innerHeight;
+	let viewport_width = window.innerWidth;
+
+	if (viewport_width / viewport_height < 0.77) {
+		if (viewport_width < 620) {
+			tile_size = (viewport_width - 30)/maze_width; // 30 is just buffer space
+		}
+	} else {
+		if (viewport_height < 800) {
+			tile_size = (viewport_height - 200)/maze_height; // 200 is buffer space for the buttons/text above/below the maze
+		}
+	}
+
+	tile_stroke  = tile_size/25;
+	solv_fontsize  = 15*(tile_size/40);
+
+	canvas.width = tile_size * maze_width;
+	canvas.height = tile_size * maze_height;
+
+	drawState();
 }
 
 function getTileClicked(event) {
@@ -510,3 +524,4 @@ var path_taken;
 var path_arr;
 
 newSession();
+resize();
