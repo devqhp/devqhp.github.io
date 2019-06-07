@@ -3,7 +3,7 @@
 function showAbout() {
 	alert("Feel free to message suggestions to me on discord at qhp#5615.\n" +
 		"- Special thanks to Ardames, De0, and Hato for advice on the game's mechanics.\n" +
-		"- Additional thanks to Define_Alive, LucidDream, SNIPERBDS, xZact, and the WeDoRaids discord for sharing mazes from which I could establish rules for maze generation.");
+		"- Additional thanks to Deflne_Alive, LucidDream, SNIPERBDS, xZact, and the WeDoRaids discord for sharing mazes from which I could establish rules for maze generation.");
 }
 
 function showRules() {
