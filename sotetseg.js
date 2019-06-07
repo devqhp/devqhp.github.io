@@ -1,10 +1,16 @@
 /* This code is pretty sloppy right now. Sorry for the mess. */
 
 function showAbout() {
-	alert("This training tool is designed to help learn the movement required for the Sotetseg maze from the Theatre of Blood in Oldschool Runescape. " +
-		"You can share mazes by copy/pasting the seed into the Edit Seed prompt. " +
-		"Special thanks to Ardames, De0, and Hato for advice on the game's mechanics. " +
-		"Additional thanks to Define_Alive, LucidDream, SNIPERBDS, xZact, and the WeDoRaids discord for sharing mazes from which I could establish rules for maze generation.");
+	alert("Feel free to message suggestions to me on discord at qhp#5615.\n" +
+		"- Special thanks to Ardames, De0, and Hato for advice on the game's mechanics.\n" +
+		"- Additional thanks to Define_Alive, LucidDream, SNIPERBDS, xZact, and the WeDoRaids discord for sharing mazes from which I could establish rules for maze generation.");
+}
+
+function showRules() {
+	alert("1. You must start on the first tile (your character waits 1 tile south).\n" +
+		  "2. You must finish on the last tile.\n" +
+		  "3. You must not damage any of your teammates (mistakes marked red).\n\n" +
+		  "Movement mechanics work just as they do in OSRS and are processed every tick (600ms).");
 }
 
 const FPS = 50;
