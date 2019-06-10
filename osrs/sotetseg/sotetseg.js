@@ -18,12 +18,6 @@ function showInstructions() {
 	);
 }
 
-
-
-
-const FPS = 50;
-const delta_time   = 1000 / FPS;
-
 const tick_length  = 600;
 
 const maze_width   = 14;
@@ -104,7 +98,12 @@ function randRange(a, b) {
 function drawPathTile(x, y) {
 	let pos_x = tile_size * x;
 	let pos_y = tile_size * y;
-	ctx.fillStyle = maze[x][y] ? color_circpass : color_circfail;
+	if (maze[x][y]) {
+		ctx.fillStyle = color_circpass;
+	} else {
+		ctx.fillStyle = color_circfail;
+		team_damaged = true;
+	}
 	ctx.beginPath(pos_x, pos_y, pos_x+tile_size, pos_y+tile_size);
 	ctx.arc(pos_x+tile_size/2, pos_y+tile_size/2, tile_size/3.4, 0, 2*Math.PI);
 	ctx.fill();
@@ -118,7 +117,6 @@ function drawMoveTile(x, y) {
 	ctx.arc(pos_x+tile_size/2, pos_y+tile_size/2, tile_size/3.4, 0, 2*Math.PI);
 	ctx.stroke();
 }
-
 
 function drawTargetTile() {
 	let pos_x = tile_size * targeted_tile.x;
@@ -226,7 +224,7 @@ function makeSeed() {
 	for (let i = 1; i < seed.length; i++) {
 		seed[i] = randRange(Math.max(seed[i-1] - max_x_change, 0), Math.min(seed[i-1] + max_x_change, maze_width - 1));
 	}
-}
+}	
 
 function makeMaze() {
 	makeSeed();
@@ -339,17 +337,12 @@ function solveMaze() {
 }
 
 function drawSolution() {
-	if (!solution_drawn) {
-		ctx.textAlign = "center";
-		ctx.fillStyle = "#FFFFFF";
-		ctx.font = `${solv_fontsize}px ${solv_font}`;
-		for (let i = 0; i < optimal_moves.length; i++) {
-			ctx.fillText(`${i+1}`, optimal_moves[i].x*tile_size + tile_size*0.5, optimal_moves[i].y*tile_size + tile_size*0.5 + solv_fontsize*0.3);
-		}
-		solution_drawn = true;
-	}
-	
-	
+	ctx.textAlign = "center";
+	ctx.fillStyle = "#FFFFFF";
+	ctx.font = `${solv_fontsize}px ${solv_font}`;
+	for (let i = 0; i < optimal_moves.length; i++) {
+		ctx.fillText(`${i+1}`, optimal_moves[i].x*tile_size + tile_size*0.5, optimal_moves[i].y*tile_size + tile_size*0.5 + solv_fontsize*0.3);
+	}	
 }
 
 function getNextPathTile(c_pos, o_pos) {
@@ -406,6 +399,9 @@ function getPassedTiles(previous, target) {
 }
 
 canvas.addEventListener('mousedown', function (event) {
+	if (player_position.y == 0) {
+		return;
+	}
 	let clickedTile = getTileClicked(event);
 	targeted_tile = new Point(clickedTile.x, clickedTile.y);
 	drawState();
@@ -430,9 +426,17 @@ function drawState() {
 	if (!(player_position.x == targeted_tile.x && player_position.y == targeted_tile.y) && player_position.y != 0) {
 		drawTargetTile();
 	}
-	if (player_position.y == 0 && !session_active) {
+	if (player_position.y == 0) {
 		drawSolution();
 	}
+}
+
+function showSolution() {
+	drawMaze();
+	drawstalledTiles();
+	drawPassedTiles();
+	drawMoves();
+	drawSolution();
 }
 
 function writePar() {
@@ -440,7 +444,18 @@ function writePar() {
 }
 
 function writeTime() {
-	document.getElementById("timer").innerHTML = `${(ticks * tick_length/1000).toFixed(1)} seconds (${ticks} ticks, ${ticks_stalled} stalled)`;
+	let timerMsg = `${(ticks * tick_length/1000).toFixed(1)} seconds (${ticks} ticks, ${ticks_stalled} stalled)`;
+	if (moves.length > 0 && moves[0].y != maze_height - 1) {
+		timerMsg += " but you skipped the first tile";
+		if (team_damaged) {
+			timerMsg += " and you damaged your team";
+		}
+		timerMsg += "!";
+	} else if (team_damaged) {
+		timerMsg += " but you damaged your team!";
+	}
+
+	document.getElementById("timer").innerHTML = timerMsg;
 }
 
 function gameTick() {
@@ -461,18 +476,31 @@ function gameTick() {
 	if (player_position.y == 0) {
 		session_active = false;
 		clearInterval(timerTick);
-		drawSolution();
 	}
-	
 	writeTime();
 }
 
-function gameFrame() {
-	drawState();
+function runStats(amount) {
+	let ticksStats = {};
+	let start = performance.now();
+	for (let i = 0; i < amount; i++) {
+		newSession();
+		if (ticksStats[optimal_moves.length]) {
+			ticksStats[optimal_moves.length] += 1;
+		} else {
+			ticksStats[optimal_moves.length] = 1;
+		}
+	}
+	let end = performance.now();
+	let strStats = `Results from ${amount} mazes (${end - start} ms):`;
+	for (let result in ticksStats) {
+		strStats += `\n${result} ticks: ${ticksStats[result]}`;
+	}
+	alert(strStats);
 }
 
 function resetvars() {
-	solution_drawn = false;
+	team_damaged = false;
 	ticks = 0;
 	ticks_stalled = 0;
 	stalled_tiles = new Array();
@@ -505,7 +533,7 @@ function reset() {
 	writeTime();
 }
 
-var solution_drawn;
+var team_damaged;
 var start_pos;
 var end_pos;
 var ticks;
