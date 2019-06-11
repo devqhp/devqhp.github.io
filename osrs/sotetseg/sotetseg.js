@@ -32,7 +32,8 @@ var view_ratio = viewport_width / viewport_height;
 var tile_size      = 40;
 var tile_stroke  = tile_size/25;
 var solv_fontsize  = 15*(tile_size/40);
-
+var offset_optimal = solv_fontsize/2;
+var offset_user    = -offset_optimal;
 
 const color_mazeback = "#323232";
 const color_tilepath = "#961919";
@@ -40,12 +41,13 @@ const color_tilenogo = "#C8C8C8";
 const color_tileplay = "#77DD77";
 const color_tilenext = "#C8C8C8";
 const color_tilesolv = "#6495ED";
-const color_linesolv = "#FFFF00";
+const color_tilestal = "#FFFF00";
+const color_linesolv = "#FF4500";
+const color_lineplay = "#6495ED";
 const color_circmove = "#FFFFFF";
 const color_circpass = "#008000";
 const color_circfail = "#DC143C";
 const solv_font      = "Arial";
-
 
 var canvas = document.getElementById("sotetseg-maze");
 var ctx = canvas.getContext("2d");
@@ -65,7 +67,7 @@ function resize() {
 
 	if (viewport_width / viewport_height < 0.77) {
 		if (viewport_width < 620) {
-			tile_size = (viewport_width - 30)/maze_width; // 30 is just buffer space
+			tile_size = (viewport_width - 20)/maze_width; // 30 is just buffer space
 		}
 	} else {
 		if (viewport_height < 800) {
@@ -75,6 +77,8 @@ function resize() {
 
 	tile_stroke  = tile_size/25;
 	solv_fontsize  = 15*(tile_size/40);
+	offset_optimal = solv_fontsize/2;
+	offset_user    = -offset_optimal;
 
 	canvas.width = tile_size * maze_width;
 	canvas.height = tile_size * maze_height;
@@ -105,7 +109,7 @@ function drawPathTile(x, y) {
 		team_damaged = true;
 	}
 	ctx.beginPath(pos_x, pos_y, pos_x+tile_size, pos_y+tile_size);
-	ctx.arc(pos_x+tile_size/2, pos_y+tile_size/2, tile_size/3.4, 0, 2*Math.PI);
+	ctx.arc(pos_x+tile_size/2, pos_y+tile_size/2, tile_size/4, 0, 2*Math.PI);
 	ctx.fill();
 }
 
@@ -224,27 +228,27 @@ function makeSeed() {
 	for (let i = 1; i < seed.length; i++) {
 		seed[i] = randRange(Math.max(seed[i-1] - max_x_change, 0), Math.min(seed[i-1] + max_x_change, maze_width - 1));
 	}
-}	
+}
 
 function makeMaze() {
 	makeSeed();
 	return makeSeededMaze(seed);
 }
 
-function connectPoints(points, color) {
+function connectPoints(points, color, pathwidth) {
 	ctx.beginPath();
 	for (let i = 0; i < points.length - 1; i++) {
 		ctx.moveTo(points[i].x * tile_size + tile_size / 2, points[i].y * tile_size + tile_size / 2);
 		ctx.lineTo(points[i + 1].x * tile_size + tile_size / 2, points[i + 1].y * tile_size + tile_size / 2);
 	}
-	ctx.lineWidth = Math.round(tile_stroke * 1.5);
+	ctx.lineWidth = Math.round(tile_stroke * 1.5 * pathwidth);
 	ctx.strokeStyle = color;
 	ctx.stroke();
 }
 
 function drawstalledTiles() {
 	for (let i = 0; i < stalled_tiles.length; i++) {
-		drawMazeTile(stalled_tiles[i].x, stalled_tiles[i].y, color_linesolv);
+		drawMazeTile(stalled_tiles[i].x, stalled_tiles[i].y, color_tilestal);
 	}
 }
 
@@ -298,10 +302,11 @@ function isValidMove(current_tile, target_tile) {
 }
 
 function solveMaze() {
-	optimal_moves = Array();
-	optimal_moves.push(new Point(start_pos.x, start_pos.y));
-	while (optimal_moves[optimal_moves.length - 1].y > 0) {
-		let c = new Point(optimal_moves[optimal_moves.length - 1].x, optimal_moves[optimal_moves.length - 1].y);
+	optimal_tickpos = new Array();
+	optimal_halftickpos = new Array();
+	optimal_tickpos.push(new Point(start_pos.x, start_pos.y));
+	while (optimal_tickpos[optimal_tickpos.length - 1].y > 0) {
+		let c = new Point(optimal_tickpos[optimal_tickpos.length - 1].x, optimal_tickpos[optimal_tickpos.length - 1].y);
 		let possible_moves = [             // we only care about tiles ahead of us (i.e. not south)
 			new Point(c.x - 2, c.y - 2),   // row of 5 tiles, 2 rows north of current position
 			new Point(c.x - 1, c.y - 2),
@@ -332,17 +337,71 @@ function solveMaze() {
 				best_move_score = weighted_maze[possible_moves[i].x][possible_moves[i].y];
 			}
 		}
-		optimal_moves.push(new Point(best_move.x, best_move.y));
+		optimal_tickpos.push(new Point(best_move.x, best_move.y));
+		let move_halftick = getPassedTiles(optimal_tickpos[optimal_tickpos.length - 2], optimal_tickpos[optimal_tickpos.length - 1]);
+		for (let i = 0; i < move_halftick.length; i++) {
+			optimal_halftickpos.push(move_halftick[i]);
+		}
+		optimal_halftickpos.unshift(start_pos);
 	}
 }
 
-function drawSolution() {
+function drawScore() {
+	let buffer = tile_size * 0.5;
+	let text_x = 0 + buffer;
+	if (seed[path_turns - 1] < maze_width / 2) {
+		text_x = maze_width * tile_size - buffer;
+		ctx.textAlign = "end";
+	} else {
+		ctx.textAlign = "start";
+	}
+
+	let strYourPath = `Your path: ${moves.length}`;
+	if (stalled_tiles.length > 0) {
+		strYourPath += `+${stalled_tiles.length} stalled`
+	}
+	let strComputerPath = `Optimal path: ${optimal_tickpos.length}`;
+	ctx.strokeStyle = "black";
+	ctx.fillStyle = color_lineplay;
+	ctx.strokeText(strYourPath, text_x, solv_fontsize * 1.5);
+	ctx.fillText(strYourPath, text_x, solv_fontsize * 1.5);
+	ctx.fillStyle = color_linesolv;
+	ctx.strokeText(strComputerPath, text_x, solv_fontsize * 3);
+	ctx.fillText(strComputerPath, text_x, solv_fontsize * 3);
+}
+
+function drawEndGame() {
+	connectPoints(optimal_halftickpos, color_linesolv, 1);
+	connectPoints(path_taken, color_lineplay, 1);
+	drawPassedTiles();
+	drawSolutionMoves();
+	drawUserMoves();
+	drawScore();
+}
+
+function drawSolutionMoves() {
+	ctx.lineWidth = solv_fontsize/3;
 	ctx.textAlign = "center";
-	ctx.fillStyle = "#FFFFFF";
-	ctx.font = `${solv_fontsize}px ${solv_font}`;
-	for (let i = 0; i < optimal_moves.length; i++) {
-		ctx.fillText(`${i+1}`, optimal_moves[i].x*tile_size + tile_size*0.5, optimal_moves[i].y*tile_size + tile_size*0.5 + solv_fontsize*0.3);
-	}	
+	ctx.fillStyle = color_linesolv;
+	ctx.strokeStyle = "black";
+	ctx.font = `bold ${solv_fontsize}px ${solv_font}`;
+	for (let i = 0; i < optimal_tickpos.length; i++) {
+		ctx.strokeText(`${i+1}`, optimal_tickpos[i].x*tile_size + tile_size*0.5, optimal_tickpos[i].y*tile_size + offset_optimal + tile_size*0.5 + solv_fontsize*0.3);
+		ctx.fillText(`${i+1}`, optimal_tickpos[i].x*tile_size + tile_size*0.5, optimal_tickpos[i].y*tile_size + offset_optimal + tile_size*0.5 + solv_fontsize*0.3);
+	}
+}
+
+function drawUserMoves() {
+	ctx.lineWidth = solv_fontsize/3;
+	ctx.textAlign = "center";
+	ctx.fillStyle = color_lineplay;
+	ctx.stroke
+	ctx.strokeStyle = "black";
+	ctx.font = `bold ${solv_fontsize}px ${solv_font}`;
+	for (let i = 0; i < moves.length; i++) {
+		ctx.strokeText(`${i+1}`, moves[i].x*tile_size + tile_size*0.5, moves[i].y*tile_size + offset_user + tile_size*0.5 + solv_fontsize*0.3);
+		ctx.fillText(`${i+1}`, moves[i].x*tile_size + tile_size*0.5, moves[i].y*tile_size + offset_user + tile_size*0.5 + solv_fontsize*0.3);
+	}
 }
 
 function getNextPathTile(c_pos, o_pos) {
@@ -426,8 +485,8 @@ function drawState() {
 	if (!(player_position.x == targeted_tile.x && player_position.y == targeted_tile.y) && player_position.y != 0) {
 		drawTargetTile();
 	}
-	if (player_position.y == 0) {
-		drawSolution();
+	if (player_position.y <= 0) {
+		drawEndGame();
 	}
 }
 
@@ -436,11 +495,11 @@ function showSolution() {
 	drawstalledTiles();
 	drawPassedTiles();
 	drawMoves();
-	drawSolution();
+	drawEndGame();
 }
 
 function writePar() {
-	document.getElementById("par").innerHTML = `Best possible time: ${(optimal_moves.length * tick_length/1000).toFixed(1)} seconds (${optimal_moves.length} ticks)`;
+	document.getElementById("par").innerHTML = `Best possible time: ${(optimal_tickpos.length * tick_length/1000).toFixed(1)} seconds (${optimal_tickpos.length} ticks)`;
 }
 
 function writeTime() {
@@ -485,10 +544,10 @@ function runStats(amount) {
 	let start = performance.now();
 	for (let i = 0; i < amount; i++) {
 		newSession();
-		if (ticksStats[optimal_moves.length]) {
-			ticksStats[optimal_moves.length] += 1;
+		if (ticksStats[optimal_tickpos.length]) {
+			ticksStats[optimal_tickpos.length] += 1;
 		} else {
-			ticksStats[optimal_moves.length] = 1;
+			ticksStats[optimal_tickpos.length] = 1;
 		}
 	}
 	let end = performance.now();
@@ -504,7 +563,6 @@ function resetvars() {
 	ticks = 0;
 	ticks_stalled = 0;
 	stalled_tiles = new Array();
-	path_arr= new Array();
 	session_active = false;
 	clearInterval(timerTick);
 	moves = new Array();
@@ -545,11 +603,11 @@ var seed;
 var maze;
 var weighted_maze;
 var moves;
-var optimal_moves;
+var optimal_tickpos;
+var optimal_halftickpos;
 var player_position;
 var targeted_tile;
 var path_taken;
-var path_arr;
 
 newSession();
 resize();
