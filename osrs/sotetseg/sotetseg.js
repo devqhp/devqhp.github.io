@@ -14,7 +14,8 @@ function showInstructions() {
 		"4. If you don't move for a tick, the tile you stall on is colored yellow.\n\n" +
 		"Movement mechanics work just as they do in OSRS and are processed every tick (600ms).\n" +
 		"White circles show where your character existed each tick while traversing the maze.\n" +
-		"The numbers show the computed optimal path. You may have a different path but as long as you make par, you're doing great :)"
+		"Blue numbers show your path, while orange numbers show the calculated optimal path.\n" +
+		"There may be more than one optimal path, so as long as you're making par you're doing great!"
 	);
 }
 
@@ -24,6 +25,7 @@ const maze_width   = 14;
 const maze_height  = 15;
 const max_x_change = 5;
 const path_turns   = 8;
+const tornado_row  = 4;
 
 var viewport_height = window.innerHeight;
 var viewport_width = window.innerWidth;
@@ -52,7 +54,10 @@ const solv_font      = "Arial";
 var canvas = document.getElementById("sotetseg-maze");
 var ctx = canvas.getContext("2d");
 canvas.width = tile_size * maze_width;
-canvas.height = tile_size * maze_height;
+canvas.height = tile_size * (maze_height); // need +1 for the extra row at the top to run off the maze, if desired.
+
+var imgTornado = new Image();
+imgTornado.src = "tornado.png";
 
 class Point {
 	constructor(x, y) {
@@ -81,7 +86,7 @@ function resize() {
 	offset_user    = -offset_optimal;
 
 	canvas.width = tile_size * maze_width;
-	canvas.height = tile_size * maze_height;
+	canvas.height = tile_size * (maze_height); // need +1 for the extra row at the top to run off the maze, if desired.
 
 	drawState();
 }
@@ -181,7 +186,8 @@ function pathWeighting() {
 	let c_pos = new Point(seed[0], maze_height - 1)
 	counter = 1;
 	while (c_pos) {
-		weighted_maze[c_pos.x][c_pos.y] = counter
+		path_coordinates.push(new Point(c_pos.x, c_pos.y));
+		weighted_maze[c_pos.x][c_pos.y] = counter;
 		counter += 1
 		t_pos.x = p_pos.x;
 		t_pos.y = p_pos.y;
@@ -224,7 +230,7 @@ function makeSeededMaze(seed) {
 
 function makeSeed() {
 	seed = new Array(path_turns);
-	seed[0] = randRange(0, maze_width - 1);
+	seed[0] = randRange(1, maze_width - 1); // 1 lower bound because maze cannot start on far west tile
 	for (let i = 1; i < seed.length; i++) {
 		seed[i] = randRange(Math.max(seed[i-1] - max_x_change, 0), Math.min(seed[i-1] + max_x_change, maze_width - 1));
 	}
@@ -395,7 +401,6 @@ function drawUserMoves() {
 	ctx.lineWidth = solv_fontsize/3;
 	ctx.textAlign = "center";
 	ctx.fillStyle = color_lineplay;
-	ctx.stroke
 	ctx.strokeStyle = "black";
 	ctx.font = `bold ${solv_fontsize}px ${solv_font}`;
 	for (let i = 0; i < moves.length; i++) {
@@ -430,8 +435,11 @@ function getNextPathTile(c_pos, o_pos) {
 
 function editSeed() {
 	let savestate = prompt("Enter a seed", seed.join(" "));
+	if (!savestate) {
+		return;
+	}
 	savestate = savestate.split(' ').map(Number);
-	if (savestate.length != path_turns || Math.max(savestate) >= maze_width || Math.min(savestate) < 0) {
+	if (savestate.length != path_turns || Math.max(...savestate) >= maze_width || Math.min(...savestate) < 0) {
 		alert("Bad seed");
 		return;
 	}
@@ -458,23 +466,27 @@ function getPassedTiles(previous, target) {
 }
 
 canvas.addEventListener('mousedown', function (event) {
-	if (player_position.y == 0) {
-		return;
-	}
-	let clickedTile = getTileClicked(event);
-	targeted_tile = new Point(clickedTile.x, clickedTile.y);
-	drawState();
 	if (moves.length == 0 && !session_active) {
 		session_active = true;
 		player_position = new Point(start_pos.x, start_pos.y + 1); // start off-screen, 1 tile below first maze tile
 		timerTick = setInterval(gameTick, tick_length);
 	}
+	if (player_position.y <= 0 || (player_position.x == tornado_position.x && player_position.y == tornado_position.y)) {
+		return;
+	}
+	let clickedTile = getTileClicked(event);
+	targeted_tile = new Point(clickedTile.x, clickedTile.y);
+	drawState();
 });
 
 function drawMoves() {
 	for (let i = 0; i < moves.length; i++) {
 		drawMoveTile(moves[i].x, moves[i].y);
 	}
+}
+
+function drawTornado() {
+	ctx.drawImage(imgTornado, tornado_position.x*tile_size+tile_size*0.1, tornado_position.y*tile_size+tile_size*0.1, tile_size*0.8, tile_size*0.8);
 }
 
 function drawState() {
@@ -485,6 +497,7 @@ function drawState() {
 	if (!(player_position.x == targeted_tile.x && player_position.y == targeted_tile.y) && player_position.y != 0) {
 		drawTargetTile();
 	}
+	drawTornado();
 	if (player_position.y <= 0) {
 		drawEndGame();
 	}
@@ -518,6 +531,10 @@ function writeTime() {
 }
 
 function gameTick() {
+	if (tornado_active || player_position.y <= maze_height - tornado_row) {
+		tornado_active = true;
+		tornado_position = path_coordinates.shift();
+	}
 	if ((player_position.x == targeted_tile.x && player_position.y == targeted_tile.y)) {
 		ticks_stalled += 1;
 		stalled_tiles.push(new Point(player_position.x, player_position.y));
@@ -532,11 +549,20 @@ function gameTick() {
 	}
 	player_position = new Point(path_taken[path_taken.length - 1].x, path_taken[path_taken.length - 1].y);
 	drawState();
-	if (player_position.y == 0) {
+	if (player_position.y <= 0 || (player_position.x == tornado_position.x && player_position.y == tornado_position.y)) {
 		session_active = false;
 		clearInterval(timerTick);
 	}
 	writeTime();
+	
+	// Testing time between ticks (on my PC varies from 590-610 ms, which is actually better than OSRS servers)
+	// if (time_a) {
+	// 	time_b = performance.now();
+	// 	console.log(time_b - time_a);
+	// 	time_a = performance.now();
+	// } else {
+	// 	time_a = performance.now();
+	// }
 }
 
 function runStats(amount) {
@@ -559,6 +585,7 @@ function runStats(amount) {
 }
 
 function resetvars() {
+	tornado_active = false;
 	team_damaged = false;
 	ticks = 0;
 	ticks_stalled = 0;
@@ -566,9 +593,11 @@ function resetvars() {
 	session_active = false;
 	clearInterval(timerTick);
 	moves = new Array();
+	tornado_position = new Point();
 	player_position = new Point();
 	targeted_tile = new Point();
 	path_taken = new Array();
+	path_coordinates = new Array();
 }
 
 function newSession() {
@@ -591,9 +620,12 @@ function reset() {
 	writeTime();
 }
 
+var tornado_position;
+var tornado_active;
 var team_damaged;
 var start_pos;
 var end_pos;
+var path_coordinates;
 var ticks;
 var ticks_stalled;
 var stalled_tiles;
@@ -608,6 +640,9 @@ var optimal_halftickpos;
 var player_position;
 var targeted_tile;
 var path_taken;
+
+// var time_a;
+// var time_b;
 
 newSession();
 resize();
